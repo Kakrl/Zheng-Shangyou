@@ -60,12 +60,12 @@ class Player:
             'joker bomb': False
         }
     
-    def display_hand(self):
+    def show_hand(self):
         hand = ''
         for idx in range(16):
             for count in range(self.hand[idx]):
                 hand += self.card_dict[idx] + ', '
-        print(hand[:-2])
+        return hand[:-2]
     
     def update_options(self, rules, is_new_round, play_type, last_played_card, last_played_count):
         for key in self.playable_moves.keys():
@@ -89,6 +89,8 @@ class Player:
                 if count >= 2:
                     self.playable_moves['pair'] = True
                     break
+            if rules[3] == 'n' and self.hand[14] == 1 and self.hand[15] == 1:
+                self.playable_moves['pair'] = True
             if rules[0] == 'y': #min two pair for a run
                 threshold = 2
             else:
@@ -172,18 +174,22 @@ class Player:
                         for card, count in enumerate(self.hand):
                             if count >= 3 and card > last_played_card:
                                 self.playable_moves[play_type] = True
-            elif rules[1] == 'y' and play_type != 'quad bomb' and play_type != 'joker bomb':
+            if rules[1] == 'y' and play_type != 'quad bomb' and play_type != 'joker bomb':
                 for card, count in enumerate(self.hand):
-                    if play_type != 'triple bomb' and count >= 3:
-                        self.playable_moves['triple bomb'] = True
-                    if play_type == 'triple bomb' and card > last_played_card:
-                        self.playable_moves[play_type] = True
-            elif play_type != 'joker bomb':
+                    if count >= 3:
+                        if play_type != 'triple bomb':
+                            self.playable_moves['triple bomb'] = True
+                        else:
+                            if card > last_played_card:
+                                self.playable_moves[play_type] = True
+            if play_type != 'joker bomb':
                 for card, count in enumerate(self.hand):
-                    if play_type != 'quad bomb' and count == 4:
-                        self.playable_moves['quad bomb'] = True
-                    if play_type == 'quad bomb' and card > last_played_card:
-                        self.playable_moves[play_type] = True
+                    if count == 4:
+                        if play_type != 'quad bomb':
+                            self.playable_moves['quad bomb'] = True
+                        else:
+                            if card > last_played_card:
+                                self.playable_moves[play_type] = True
             if rules[3] == 'y' and self.hand[14] == 1 and self.hand[15] == 1: #joker bomb
                 self.playable_moves['joker bomb'] = True
         return [moves for moves, is_allowed in self.playable_moves.items() if is_allowed]
@@ -215,8 +221,8 @@ class Player:
                     msg = '(' + lengths[0]
                     for num in lengths[1:]:
                         msg += '/' + num
-                    msg += ')\n'
-                    length = input("What length of single run would you like to play? " + msg)
+                    msg += ') --> '
+                    length = input("What length of single run do you want to play? " + msg)
                     while length not in lengths:
                         length = input("Please try again. " + msg)
                 else:
@@ -226,17 +232,19 @@ class Player:
             length = int(length)
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] != 0:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
-                    options.append([num for num in range(card-length, card)])
+                if in_a_row == length and card-length+1 > last_played_card:
+                    options.append([num for num in range(card-length+1, card+1)])
         elif play_type == 'pair':
             for card, count in enumerate(self.hand):
                 if count >= 2 and card > last_played_card:
                     options.append([card, card])
+            if rules[3] == 'n' and self.hand[14] == 1 and self.hand[15] == 1:
+                options.append([self.hand[14], self.hand[15]])
         elif play_type == 'pair run':
             lengths = []
             if is_new_round:
@@ -256,8 +264,8 @@ class Player:
                     msg = '(' + lengths[0]
                     for num in lengths[1:]:
                         msg += '/' + num
-                    msg += ')\n'
-                    length = input("What length of pair run would you like to play? " + msg)
+                    msg += ') --> '
+                    length = input("What length of pair run do you want to play? " + msg)
                     while length not in lengths:
                         length = input("Please try again. " + msg)
                 else:
@@ -267,14 +275,14 @@ class Player:
             length = int(length)
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] >= 2:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
+                if in_a_row == length and card-length+1 > last_played_card:
                     temp = []
-                    for num in range(card-length, card):
+                    for num in range(card-length+1, card+1):
                         temp.append(num)
                         temp.append(num)
                     options.append(temp)
@@ -302,7 +310,7 @@ class Player:
             choices_msg = '('
             for choice in choices:
                 choices_msg += choice + '/'
-            choices_msg = choices_msg[:-1] + ')\n'
+            choices_msg = choices_msg[:-1] + ') --> '
             msg += choices_msg
             ansr = ''
             ansr = input("Out of these options for your " + play_type + ", which would you like?" + msg)
@@ -333,7 +341,7 @@ class Player:
                 choices_msg = '('
                 for choice in choices:
                     choices_msg += choice + '/'
-                choices_msg = choices_msg[:-1] + ')\n'
+                choices_msg = choices_msg[:-1] + ') --> '
                 msg += choices_msg
                 ansr = input("Out of these options for the " + pairing + " for the triple to carry, which would you like?" + msg)
                 while ansr not in choices:
@@ -344,56 +352,71 @@ class Player:
             for card in carry_option:
                 self.hand[card] -= 1
                 option.append(card)
-        print("Here is what you have selected:")
-        hand = ''
+        play = ''
         for card in option:
-            hand += self.card_dict[card] + ', '
-        print(hand[:-2] + '\n')
-        print("Here is your hand if you were to play your selection:")
-        Player.display_hand(self)
-        confirmation = input('Confirm if this is the wanted play. (y/n)\n')
-        while confirmation not in ['y', 'n']:
-            confirmation = input('Please try again. (y/n)\n')
-        if confirmation == 'n':
-            print("Okay, what would you like to do instead?")
-            self.hand = copy.deepcopy(orig_hand)
-            last_played_card, last_played_count = Player.pick_possible_start_cards(self, rules, is_new_round, play_type, last_played_card, last_played_count)
-            return last_played_card, last_played_count
-        return option[0], len(option)
+            play += self.card_dict[card] + ', '
+        print("Selection: " + play[:-2])
+        if sum(self.hand) != 0:
+            print("Hand after selection: " + Player.show_hand(self))
+            if len(options) > 1:
+                confirmation = input('Confirm if this is the wanted play. (y/n) --> ')
+                while confirmation not in ['y', 'n']:
+                    confirmation = input('Please try again. (y/n) --> ')
+                if confirmation == 'n':
+                    print("Okay, what would you like to do instead?")
+                    self.hand = copy.deepcopy(orig_hand)
+                    return Player.pick_possible_start_cards(self, rules, is_new_round, play_type, last_played_card, last_played_count)
+            else:
+                last_played_card = option[0]
+                last_played_count = len(option)
+        if len(option) > 1:
+            print("\nYou played " + play[:-2] + ".")
+        else:
+            print("\nYou played a " + play[:-2] + ".")
+        print('')
+        return last_played_card, last_played_count
     
     def pick_option(self, rules, is_new_round, option_type, last_played_card, last_played_count):
-        print("It's your turn! Here is your hand:")
-        Player.display_hand(self)
+        print("It's your turn! Here is your hand: " + Player.show_hand(self))
         play_types = Player.update_options(self, rules, is_new_round, option_type, last_played_card, last_played_count)
         options = '('
         for option in play_types:
             options += option + ', '
-        options = options[:-2] + ')\n'
+        options = options[:-2] + ')'
         if is_new_round:
             if len(play_types) > 1:
                 msg = 'Out of these options, which would you like to play? '
-                play_type = input(msg + options)
+                play_type = input(msg + options + ' --> ')
                 while play_type not in play_types:
-                    play_type = input("Please try again. " + options)
+                    play_type = input("Please try again. " + options + ' --> ')
             else:
                 play_type = play_types[0]
+                print("You can only play a " + play_type + "!")
+            print('\n')
         else: #confirm if player can play or not
             if play_types:
-                play_type = input("Would you like to play or pass? (play/pass)\n")
+                play_type = input("Would you like to play or pass? (play/pass) --> ")
                 while play_type not in ['play', 'pass']:
-                    play_type = input("Please try again. (play/pass)\n")
+                    play_type = input("Please try again. (play/pass) --> ")
                 if play_type == 'pass':
-                    print("You passed.")
+                    print("\nYou passed.\n")
                 elif len(play_types) > 1:
-                    play_type = input("Alright! Which of these options would you like to play? " + options)
+                    play_type = input("Alright! Which of these options would you like to play? " + options + ' --> ')
                     while play_type not in play_types:
-                        play_type = input("Please try again. " + options)
+                        play_type = input("Please try again. " + options + ' --> ')
+                    print('')
                 else:
-                    play_type = options[1:-2]
+                    play_type = play_types[0]
+                    if play_type == option_type:
+                        print("\nYou can only match type and play a " + play_type + "!")
+                    else:
+                        print("\nYou have chosen to play a " + play_type + ".")
             else:
-                print("No playable moves! Auto-passing.")
+                print("No playable moves! Auto-passing.\n")
                 play_type = 'pass'
         if play_type != 'pass':
+            if (option_type != 'triple bomb' and play_type == 'triple bomb') or (option_type != 'quad bomb' and play_type == 'quad bomb'):
+                last_played_card = -1
             last_played_card, last_played_count = Player.pick_possible_start_cards(self, rules, is_new_round, play_type, last_played_card, last_played_count)
             return play_type, play_type, last_played_card, last_played_count
         else:
@@ -401,16 +424,19 @@ class Player:
     
     def bot1_pick(self, rules, is_new_round, option_type, last_played_card, last_played_count): #play random type but force lowest run and pick highest
         play_types = Player.update_options(self, rules, is_new_round, option_type, last_played_card, last_played_count)
-        Player.display_hand(self)#######################################################
-        print(play_types)#############################################
-        if not play_types:
-            print("Bot 1 has no playable moves. It passes.")
+        if not is_new_round:
+            play_types.append('pass')
+        if play_types[0] == 'pass':
+            print("Bot 1 passed.\n")
             return 'pass', option_type, last_played_card, last_played_count
         if len(play_types) > 1:
             rand = random.randint(0, len(play_types)-1)
         else:
             rand = 0
         play_type = play_types[rand]
+        if play_type == 'pass':
+            print("Bot 1 passed.\n")
+            return 'pass', option_type, last_played_card, last_played_count
         options = []
         if play_type == 'single':
             options = [[card] for card, count in enumerate(self.hand) if count != 0 and card > last_played_card]
@@ -425,15 +451,17 @@ class Player:
                 length = last_played_count
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] != 0:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
-                    options.append([num for num in range(card-length, card)])
+                if in_a_row == length and card-length+1 > last_played_card:
+                    options.append([num for num in range(card-length+1, card+1)])
         elif play_type == 'pair':
             options = [[card, card] for card, count in enumerate(self.hand) if count >= 2 and card > last_played_card]
+            if rules[3] == 'n' and self.hand[14] == 1 and self.hand[15] == 1:
+                options.append([self.hand[14], self.hand[15]])
         elif play_type == 'pair run':
             if is_new_round:
                 if rules[0] == 'y':
@@ -445,21 +473,29 @@ class Player:
                 length = last_played_count
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] >= 2:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
+                if in_a_row == length and card-length+1 > last_played_card:
                     temp = []
-                    for num in range(card-length, card):
-                        temp.append(num+1)
-                        temp.append(num+1)
+                    for num in range(card-length+1, card+1):
+                        temp.append(num)
+                        temp.append(num)
                     options.append(temp)
-        elif play_type == 'triple no-carry' or play_type == 'triple single-carry' or play_type == 'triple pair-carry' or play_type == 'triple bomb':
+        elif play_type == 'triple no-carry' or play_type == 'triple single-carry' or play_type == 'triple pair-carry':
             options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3 and card > last_played_card]
+        elif play_type == 'triple bomb':
+            if option_type != 'triple bomb':
+                options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3]
+            else:
+                options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3 and card > last_played_card]
         elif play_type == 'quad bomb':
-            options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4 and card > last_played_card]
+            if option_type != 'quad bomb':
+                options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4]
+            else:
+                options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4 and card > last_played_card]
         elif play_type == 'joker bomb':
             options = [[14, 15]]
         option = options[-1]
@@ -474,27 +510,33 @@ class Player:
             for card in carry_option:
                 self.hand[card] -= 1
                 option.append(card)
-        print("It's Bot 1's turn. Here is what it played:")
         hand = ''
         for card in option:
             hand += self.card_dict[card] + ', '
-        print(hand[:-2] + '\n')
+        if len(option) > 1:
+            print("Bot 1 played " + hand[:-2] + ".")
+        else:
+            print("Bot 1 played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Bot 1 only has 1 card remaining!")
+        print('')
         return play_type, play_type, option[0], len(option)
     
     def bot2_pick(self, rules, is_new_round, option_type, last_played_card, last_played_count): #play random type, length, and selection
         play_types = Player.update_options(self, rules, is_new_round, option_type, last_played_card, last_played_count)
-        Player.display_hand(self)#######################################################
-        print(play_types)#############################################
-        if not play_types:
-            print("Bot 2 has no playable moves. It passes.")
+        if not is_new_round:
+            play_types.append('pass')
+        if play_types[0] == 'pass':
+            print("Bot 2 passed.\n")
             return 'pass', option_type, last_played_card, last_played_count
         if len(play_types) > 1:
             rand = random.randint(0, len(play_types)-1)
         else:
             rand = 0
         play_type = play_types[rand]
+        if play_type == 'pass':
+            print("Bot 2 passed.\n")
+            return 'pass', option_type, last_played_card, last_played_count
         options = []
         if play_type == 'single':
             options = [[card] for card, count in enumerate(self.hand) if count != 0 and card > last_played_card]
@@ -519,15 +561,17 @@ class Player:
                 length = last_played_count
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] != 0:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
-                    options.append([num for num in range(card-length, card)])
+                if in_a_row == length and card-length+1 > last_played_card:
+                    options.append([num for num in range(card-length+1, card+1)])
         elif play_type == 'pair':
             options = [[card, card] for card, count in enumerate(self.hand) if count >= 2 and card > last_played_card]
+            if rules[3] == 'n' and self.hand[14] == 1 and self.hand[15] == 1:
+                options.append([self.hand[14], self.hand[15]])
         elif play_type == 'pair run':
             lengths = []
             if is_new_round:
@@ -549,21 +593,29 @@ class Player:
                 length = last_played_count
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] >= 2:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
+                if in_a_row == length and card-length+1 > last_played_card:
                     temp = []
-                    for num in range(card-length, card):
+                    for num in range(card-length+1, card+1):
                         temp.append(num)
                         temp.append(num)
                     options.append(temp)
-        elif play_type == 'triple no-carry' or play_type == 'triple single-carry' or play_type == 'triple pair-carry' or play_type == 'triple bomb':
+        elif play_type == 'triple no-carry' or play_type == 'triple single-carry' or play_type == 'triple pair-carry':
             options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3 and card > last_played_card]
+        elif play_type == 'triple bomb':
+            if option_type != 'triple bomb':
+                options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3]
+            else:
+                options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3 and card > last_played_card]
         elif play_type == 'quad bomb':
-            options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4 and card > last_played_card]
+            if option_type != 'quad bomb':
+                options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4]
+            else:
+                options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4 and card > last_played_card]
         elif play_type == 'joker bomb':
             options = [[14, 15]]
         if len(options) > 1:
@@ -586,27 +638,33 @@ class Player:
             for card in carry_option:
                 self.hand[card] -= 1
                 option.append(card)
-        print("It's Bot 2's turn. Here is what it played:")
         hand = ''
         for card in option:
             hand += self.card_dict[card] + ', '
-        print(hand[:-2] + '\n')
+        if len(option) > 1:
+            print("Bot 2 played " + hand[:-2] + ".")
+        else:
+            print("Bot 2 played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Bot 2 only has 1 card remaining!")
+        print('')
         return play_type, play_type, option[0], len(option)
     
     def superbot_pick(self, rules, is_new_round, option_type, last_played_card, last_played_count): #CURR: play random type, pick longest length, select lowest possible   FUTURE: don't allow to break bombs and play them after a certain number of rounds
         play_types = Player.update_options(self, rules, is_new_round, option_type, last_played_card, last_played_count)
-        Player.display_hand(self)#######################################################
-        print(play_types)#############################################
-        if not play_types:
-            print("Superbot has no playable moves. It passes.")
+        if not is_new_round:
+            play_types.append('pass')
+        if play_types[0] == 'pass':
+            print("Superbot passed.\n")
             return 'pass', option_type, last_played_card, last_played_count
         if len(play_types) > 1:
             rand = random.randint(0, len(play_types)-1)
         else:
             rand = 0
         play_type = play_types[rand]
+        if play_type == 'pass':
+            print("Superbot passed.\n")
+            return 'pass', option_type, last_played_card, last_played_count
         options = []
         if play_type == 'single':
             options = [[card] for card, count in enumerate(self.hand) if count != 0 and card > last_played_card]
@@ -630,15 +688,17 @@ class Player:
                 length = last_played_count
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] != 0:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
-                    options.append([num for num in range(card-length, card)])
+                if in_a_row == length and card-length+1 > last_played_card:
+                    options.append([num for num in range(card-length+1, card+1)])
         elif play_type == 'pair':
             options = [[card, card] for card, count in enumerate(self.hand) if count >= 2 and card > last_played_card]
+            if rules[3] == 'n' and self.hand[14] == 1 and self.hand[15] == 1:
+                options.append([self.hand[14], self.hand[15]])
         elif play_type == 'pair run':
             lengths = []
             if is_new_round:
@@ -659,21 +719,29 @@ class Player:
                 length = last_played_count
             for card in range(length, 13):
                 in_a_row = 0
-                for prev_card in range(length,0,-1):
+                for prev_card in range(length-1,-1,-1):
                     if self.hand[card-prev_card] >= 2:
                         in_a_row += 1
                     else:
                         in_a_row = 0
-                if in_a_row == length:
+                if in_a_row == length and card-length+1 > last_played_card:
                     temp = []
-                    for num in range(card-length, card):
+                    for num in range(card-length+1, card+1):
                         temp.append(num)
                         temp.append(num)
                     options.append(temp)
-        elif play_type == 'triple no-carry' or play_type == 'triple single-carry' or play_type == 'triple pair-carry' or play_type == 'triple bomb':
+        elif play_type == 'triple no-carry' or play_type == 'triple single-carry' or play_type == 'triple pair-carry':
             options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3 and card > last_played_card]
+        elif play_type == 'triple bomb':
+            if option_type != 'triple bomb':
+                options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3]
+            else:
+                options = [[card, card, card] for card, count in enumerate(self.hand) if count >= 3 and card > last_played_card]
         elif play_type == 'quad bomb':
-            options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4 and card > last_played_card]
+            if option_type != 'quad bomb':
+                options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4]
+            else:
+                options = [[card, card, card, card] for card, count in enumerate(self.hand) if count == 4 and card > last_played_card]
         elif play_type == 'joker bomb':
             options = [[14, 15]]
         option = options[0]
@@ -688,13 +756,16 @@ class Player:
             for card in carry_option:
                 self.hand[card] -= 1
                 option.append(card)
-        print("It's Superbot's turn. Here is what it played:")
         hand = ''
         for card in option:
             hand += self.card_dict[card] + ', '
-        print(hand[:-2] + '\n')
+        if len(option) > 1:
+            print("Superbot played " + hand[:-2] + ".")
+        else:
+            print("Superbot played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Superbot only has 1 card remaining!")
+        print('')
         return play_type, play_type, option[0], len(option)
 
 class Game:
@@ -707,36 +778,36 @@ class Game:
         
     def get_settings(self, message):
         if not message:
-            ansr = input("Yay! Would you like to play standard or custom rules? (standard/custom)\n")
+            ansr = input("Yay! Would you like to play standard or custom rules? (standard/custom) --> ")
         else:
             ansr = input(message)
         while ansr not in ['standard', 'custom']:
-            ansr = input("Please try again. (standard/custom)\n")
+            ansr = input("Please try again. (standard/custom) --> ")
         if ansr == 'standard':
             rules = ['y', 'n', 'n', 'y']
-            print("Here are your selected rules:")
+            print("\nHere are your selected rules:")
             Game.display_settings(rules)
         else:
-            a = input("Please select your rules.\nTwo Pair Run: (y/n)\n")
+            a = input("\nPlease select your rules.\nTwo Pair Run: (y/n) --> ")
             while a not in ['y', 'n']:
-                a = input("Please try again. (y/n)\n")
-            b = input("Three-of-a-kind Bomb: (y/n)\n")
+                a = input("Please try again. (y/n) --> ")
+            b = input("Three-of-a-kind Bomb: (y/n) --> ")
             while b not in ['y', 'n']:
-                b = input("Please try again. (y/n)\n")
-            c = input("Three Single Run: (y/n)\n")
+                b = input("Please try again. (y/n) --> ")
+            c = input("Three Single Run: (y/n) --> ")
             while c not in ['y', 'n']:
-                c = input("Please try again. (y/n)\n")
-            d = input("Joker Bomb: (y/n)\n")
+                c = input("Please try again. (y/n) --> ")
+            d = input("Joker Bomb: (y/n) --> ")
             while d not in ['y', 'n']:
-                d = input("Please try again. (y/n)\n")
+                d = input("Please try again. (y/n) --> ")
             rules = [a, b, c, d]
-            print("Here are your selected rules:")
+            print("\nHere are your selected rules:")
             Game.display_settings(rules)
-        confirmation = input("Does that sound alright? (y/n)\n")
+        confirmation = input("\nDoes that sound alright? (y/n) --> ")
         while confirmation not in ['y', 'n']:
-            confirmation = input("Please try again. (y/n)\n")
+            confirmation = input("Please try again. (y/n) --> ")
         if confirmation == 'n':
-            Game.get_settings(self, "Alright, would you like to play standard or custom rules? (standard/custom)\n")
+            Game.get_settings(self, "Alright, would you like to play standard or custom rules? (standard/custom) --> ")
         self.settings = rules
         
     def order(self):
@@ -774,7 +845,7 @@ class Game:
             print("No Joker Bomb")
     
     def play_phase(self):
-        print("The round has started.")
+        print("\n\n\n\n\nThe game has started.\n\n\n")
         for _ in range(4): #combine the three of hearts into the threes
             if self.curr_player.data.hand[0] == 1:
                 self.curr_player.data.hand[1] += 1
@@ -804,13 +875,17 @@ class Game:
                 print("Everyone passed!")
                 self.is_new_round = True
                 pass_count = 0
-                option_type = ''
+                option_type = 'pass' #for faster time reset in the not winner if-statement below
                 self.last_played_option_type = ''
                 self.last_played_card = -1
                 self.last_played_count = -1
                 print("\n\n\nNEW ROUND\n\n\n")
             else:
                 self.is_new_round = False
+            for count in self.curr_player.data.hand:############################################################
+                if count < 0:###################################################################################
+                    print("ERROR: LAST PLAYER'S HAND HAS AT LEAST ONE NEGATIVE INDEX")##########################
+                    exit()######################################################################################
             if sum(self.curr_player.data.hand) == 0: #if someone has no cards left in hand
                 winner = True
                 self.curr_player.next.data.is_past_winner = False
@@ -831,28 +906,31 @@ class Game:
                         bot = "Bot 2"
                     else:
                         bot = "Superbot"
-                    print(bot + " has won this round.")
+                    print(bot + " has won this round.\n")
                 print("Here are the number of cards left in each hand from this round:")
                 print("You:      " + str(sum(self.player.hand)))
                 print("Bot 1:    " + str(sum(self.bot1.hand)))
                 print("Bot 2:    " + str(sum(self.bot2.hand)))
-                print("Superbot: " + str(sum(self.superbot.hand)))
+                print("Superbot: " + str(sum(self.superbot.hand)) + '\n')
                 Game.display_scoreboard(self)
             if not winner:
                 self.curr_player = self.curr_player.next
-                time.sleep(5)
+                if option_type != 'pass':
+                    time.sleep(6)
+                else:
+                    time.sleep(3)
         Game.order(self)
         Game.end(self)
         
     def end(self):
         confirmation = 'n'
         while confirmation == 'n':
-            ansr = input("Would you like to reset the game, play the next round, or end the game? (reset/next/end)\n")
+            ansr = input("Would you like to reset the game, play the next round, or end the game? (reset/next/end) --> ")
             while ansr not in ['next', 'end', 'reset']:
-                ansr = input("Please try again. (reset/next/end)\n")
-            confirmation = input("You have selected '" + ansr + "'. Please confirm. (y/n)\n")
+                ansr = input("Please try again. (reset/next/end) --> ")
+            confirmation = input("You have selected '" + ansr + "'. Please confirm. (y/n) --> ")
             while confirmation not in ['y', 'n']:
-                confirmation = input("Please try again. (y/n)\n")
+                confirmation = input("Please try again. (y/n) --> ")
         if ansr == 'reset':
             start()
         elif ansr == 'next':
@@ -871,7 +949,7 @@ class Game:
         print("Your Score:       " + str(self.player.score))
         print("Bot 1's Score:    " + str(self.bot1.score))
         print("Bot 2's Score:    " + str(self.bot2.score))
-        print("Superbot's Score: " + str(self.superbot.score))
+        print("Superbot's Score: " + str(self.superbot.score) + '\n')
     
     def deal(self): #each hand list's index represents cards from 3-of-hearts,3,4,5,6,7,8,9,10,J,Q,K,A,2,BJoker,RJoker
         deck = [1, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 1, 1]
