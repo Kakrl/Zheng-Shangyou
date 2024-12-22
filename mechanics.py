@@ -518,9 +518,9 @@ class Player:
         if len(option) > 1:
             print("Bot 1 played " + hand[:-2] + ".")
         elif hand[:-2] == '8' or hand[:-2] == 'Ace':
-            print("\nYou played an " + hand[:-2] + ".")
+            print("\nBot 1 played an " + hand[:-2] + ".")
         else:
-            print("\nYou played a " + hand[:-2] + ".")
+            print("\nBot 1 played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Bot 1 only has 1 card remaining!")
         print('')
@@ -648,9 +648,9 @@ class Player:
         if len(option) > 1:
             print("Bot 2 played " + hand[:-2] + ".")
         elif hand[:-2] == '8' or hand[:-2] == 'Ace':
-            print("\nYou played an " + hand[:-2] + ".")
+            print("\nBot 2 played an " + hand[:-2] + ".")
         else:
-            print("\nYou played a " + hand[:-2] + ".")
+            print("\nBot 2 played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Bot 2 only has 1 card remaining!")
         print('')
@@ -768,9 +768,9 @@ class Player:
         if len(option) > 1:
             print("Superbot played " + hand[:-2] + ".")
         elif hand[:-2] == '8' or hand[:-2] == 'Ace':
-            print("\nYou played an " + hand[:-2] + ".")
+            print("\nSuperbot played an " + hand[:-2] + ".")
         else:
-            print("\nYou played a " + hand[:-2] + ".")
+            print("\nSuperbot played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Superbot only has 1 card remaining!")
         print('')
@@ -811,12 +811,12 @@ class Game:
             rules = [a, b, c, d]
             print("\nHere are your selected rules:")
             Game.display_settings(rules)
+        self.settings = rules
         confirmation = input("\nDoes that sound alright? (y/n) --> ")
         while confirmation not in ['y', 'n']:
             confirmation = input("Please try again. (y/n) --> ")
         if confirmation == 'n':
             Game.get_settings(self, "Alright, would you like to play standard or custom rules? (standard/custom) --> ")
-        self.settings = rules
         
     def order(self):
         if self.age == 1: #if new game
