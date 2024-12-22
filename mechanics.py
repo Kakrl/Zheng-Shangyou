@@ -371,6 +371,8 @@ class Player:
                 last_played_count = len(option)
         if len(option) > 1:
             print("\nYou played " + play[:-2] + ".")
+        elif play[:-2] == '8' or play[:-2] == 'Ace':
+            print("\nYou played an " + play[:-2] + ".")
         else:
             print("\nYou played a " + play[:-2] + ".")
         print('')
@@ -515,8 +517,10 @@ class Player:
             hand += self.card_dict[card] + ', '
         if len(option) > 1:
             print("Bot 1 played " + hand[:-2] + ".")
+        elif hand[:-2] == '8' or hand[:-2] == 'Ace':
+            print("\nYou played an " + hand[:-2] + ".")
         else:
-            print("Bot 1 played a " + hand[:-2] + ".")
+            print("\nYou played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Bot 1 only has 1 card remaining!")
         print('')
@@ -643,8 +647,10 @@ class Player:
             hand += self.card_dict[card] + ', '
         if len(option) > 1:
             print("Bot 2 played " + hand[:-2] + ".")
+        elif hand[:-2] == '8' or hand[:-2] == 'Ace':
+            print("\nYou played an " + hand[:-2] + ".")
         else:
-            print("Bot 2 played a " + hand[:-2] + ".")
+            print("\nYou played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Bot 2 only has 1 card remaining!")
         print('')
@@ -761,8 +767,10 @@ class Player:
             hand += self.card_dict[card] + ', '
         if len(option) > 1:
             print("Superbot played " + hand[:-2] + ".")
+        elif hand[:-2] == '8' or hand[:-2] == 'Ace':
+            print("\nYou played an " + hand[:-2] + ".")
         else:
-            print("Superbot played a " + hand[:-2] + ".")
+            print("\nYou played a " + hand[:-2] + ".")
         if sum(self.hand) == 1:
             print("Warning: Superbot only has 1 card remaining!")
         print('')
